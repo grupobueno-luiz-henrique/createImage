@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mural-aniversariantes"
+version = "0.1.0"
+description = "Gera mural de aniversariantes a partir de planilha Excel e template PNG"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "pillow>=10.0.0",
+    "pandas>=2.0.0",
+    "openpyxl>=3.1.0",
+]
+
+[tool.setuptools]
+py-modules = ["gerar_mural"]
