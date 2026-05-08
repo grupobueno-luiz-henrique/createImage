@@ -53,6 +53,14 @@ coverage.xml
 .DS_Store
 Thumbs.db
 
+# Saídas geradas (PNG/PPTX) - ignora a pasta mas mantém a estrutura
+saida/*.png
+saida/*.pptx
+
+# Assets
+assets/ template.png
+assets/ aniversariantes.xlsx
+
 # Local env files (secrets)
 .env
 .env.local

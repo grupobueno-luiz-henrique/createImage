@@ -1,38 +1,48 @@
-# Mural de Aniversariantes - Grupo Bueno
+# Mural de Aniversariantes — Grupo Bueno
 
-Script Python que lê uma planilha Excel e gera automaticamente o mural
-de aniversariantes do mês a partir de um template.
+Gera o mural mensal a partir de uma planilha Excel + um template PNG. Saída
+em **PNG** (Pillow) e **PowerPoint editável** (.pptx) — esse último abre no
+Canva/PowerPoint com cada texto em uma caixa, e cada coluna em um grupo
+arrastável.
 
-## 📦 Instalação
+## Estrutura do projeto
+
+```
+pillow_draft/
+├── gerar_mural.py            # entrypoint da CLI (orquestra tudo)
+├── mural/                    # pacote com a lógica
+│   ├── config.py             # ⚙️ constantes editáveis (mês, fontes, ...)
+│   ├── tipos.py              # dataclasses compartilhadas
+│   ├── utilitarios.py        # rgb(), conversões px → EMU/pt
+│   ├── planilha.py           # leitura do Excel
+│   ├── layout.py             # cálculo de posições (Pillow só p/ medir)
+│   ├── render_pillow.py      # geração do PNG
+│   └── render_pptx.py        # geração do .pptx
+├── assets/
+│   ├── template.png          # template em branco (fundo do mural)
+│   ├── aniversariantes.xlsx  # planilha do mês
+│   └── fontes/               # arquivos .ttf/.otf
+└── saida/                    # PNG e .pptx gerados
+```
+
+## Instalação
 
 ```bash
-pip install pillow pandas openpyxl
+pip install -e .
+# ou só as dependências:
+pip install pillow pandas openpyxl python-pptx
 ```
 
-## 📁 Estrutura de pastas necessária
+## Preparando o template
 
-```
-mural_aniversariantes/
-├── gerar_mural.py
-├── template.png             ← seu template em branco
-├── aniversariantes.xlsx     ← planilha do mês
-└── fontes/
-    ├── Ailerons 400.otf
-    └── itoya-bold.ttf
-```
+1. Abra o template original no Canva e faça uma cópia.
+2. Apague todos os textos (FUNCIONARIO, CARGO, números 00 etc.).
+3. Mantenha fundo, título "ANIVERSARIANTES" e logo.
+4. Exporte como PNG em alta resolução e salve em `assets/template.png`.
 
-## 🎨 Preparando o template
+## Preparando a planilha
 
-1. Abre o template original no Canva
-2. Faz uma cópia (pra não perder o original)
-3. **Apaga todos os textos placeholder**: FUNCIONARIO, CARGO e os números 00
-4. Mantém: fundo, título "ANIVERSARIANTES", logo do Grupo Bueno
-5. Exporta como **PNG em alta resolução** (ideal: 1920x1280px ou maior)
-6. Salva como `template.png` na pasta do script
-
-## 📋 Preparando a planilha
-
-Cria um arquivo Excel chamado `aniversariantes.xlsx` com **exatamente** essas colunas:
+`assets/aniversariantes.xlsx` precisa ter exatamente estas colunas:
 
 | dia | nome           | cargo       |
 |-----|----------------|-------------|
@@ -40,81 +50,76 @@ Cria um arquivo Excel chamado `aniversariantes.xlsx` com **exatamente** essas co
 | 5   | Maria Santos   | Gerente     |
 | 8   | Pedro Costa    | Estoquista  |
 
-⚠️ **Importante**: o script já ordena por dia automaticamente, então
-você pode adicionar os nomes em qualquer ordem.
+A ordem das linhas não importa: o script ordena por dia automaticamente.
 
-## 🔧 Calibração (passo mais importante)
-
-Como cada template tem dimensões e proporções diferentes, você precisa
-ajustar as posições dos textos. Faz assim:
-
-### 1. Ativa o modo debug
-
-No `gerar_mural.py`, mude:
-```python
-MODO_DEBUG = True
-```
-
-### 2. Roda o script
+## Rodar
 
 ```bash
 python gerar_mural.py
 ```
 
-### 3. Abre a imagem gerada
+Sai em `saida/`:
 
-Você vai ver linhas verdes mostrando onde os textos estão sendo desenhados.
+- `mural_<mes>_<ano>.png` — versão final.
+- `mural_<mes>_<ano>.pptx` — versão editável para Canva/PowerPoint.
 
-### 4. Ajusta os valores
+Antes de gerar, o script **remove** todos os `mural_*.png` e `mural_*.pptx`
+já existentes em `saida/` — assim, ao mudar o mês (maio → junho), não ficam
+arquivos antigos misturados.
 
-Mexe nessas variáveis pra alinhar com seu template:
+## Onde mexer (`mural/config.py`)
 
-- `Y_MES` e `OFFSET_X_MES` → posição vertical e nudge horizontal do nome do mês
-- `LARGURA_COLUNA_PX` → largura horizontal fixa de cada coluna
-- `ALTURA_COLUNA_PX` → altura útil de cada coluna; `None` usa `imagem - Y_INICIAL - MARGEM_INFERIOR`
-- `MARGEM_INFERIOR` → folga até o pé da imagem (só usada quando `ALTURA_COLUNA_PX = None`)
-- `POSICAO_X_PRIMEIRA_COLUNA` → `None` centraliza o bloco; número fixa o X da 1ª coluna
-- `Y_INICIAL` → onde começa a primeira linha
-- `ESPACO_ENTRE_COLUNAS` → distância horizontal entre uma coluna e a seguinte (`None` = proporcional à fonte)
-- `ESPACO_DIA_PARA_NOME` → espaço **depois** do número do dia (`None` = proporcional à fonte)
-- `ESPACO_ENTRE_PESSOAS` → espaço entre o **fim do cargo** e o **topo** da próxima entrada
-- `ESPACO_NOME_PARA_CARGO` → espaço entre a **base** do nome e o **topo** do cargo
-- `ESPACO_ENTRE_LINHAS` (`MULT_ESPACO_ENTRE_LINHAS`) → espaço quando o nome ou o cargo precisa quebrar em várias linhas (`None` = proporcional à fonte)
-- `MAX_COLUNAS` → só aviso de segurança caso a planilha estoure
+Tudo que você normalmente quer trocar está em seções comentadas no topo do
+arquivo:
 
-> Nomes que estourarem a `LARGURA_COLUNA_PX` são quebrados automaticamente em palavras; o cargo segue o mesmo critério. A altura para o cálculo das colunas leva em conta as linhas extras.
+| Seção                | O que controla                                   |
+|----------------------|--------------------------------------------------|
+| Mês de referência    | `MES = "JANEIRO"`                                |
+| Caminhos             | template, planilha, fontes, arquivos de saída    |
+| Fontes               | arquivos `.ttf/.otf`, tamanhos, nome no PPTX     |
+| Cores                | `COR_TURQUESA`, `COR_PRETO`                      |
+| Posição do mês       | `Y_MES`, `OFFSET_X_MES`                          |
+| Layout das colunas   | largura, altura, posição da 1ª coluna, ...       |
+| Espaçamentos         | absolutos OU proporcionais à fonte (None)        |
+| Saída e debug        | `EXPORTAR_PPTX`, `PPTX_GRUPO_POR_COLUNA`, debug  |
 
-### 5. Quando estiver alinhado
+## Calibração visual (modo debug)
 
-Volta `MODO_DEBUG = False` e gera a versão final.
+1. Em `mural/config.py`, deixe `MODO_DEBUG = True`.
+2. Rode `python gerar_mural.py`.
+3. Abra o PNG: linhas verdes mostram as células de cada pessoa.
+4. Ajuste `Y_INICIAL`, `LARGURA_COLUNA_PX`, espaçamentos.
+5. Quando estiver alinhado, volte `MODO_DEBUG = False`.
 
-## 🚀 Uso mensal (depois de calibrado)
+## Como o código está dividido
 
-Toda vez que precisar gerar o mural de um novo mês:
+- O **layout** calcula a posição absoluta (em pixels) de **cada texto**;
+  o resultado é um `LayoutMural` (dataclass).
+- O **renderer Pillow** recebe esse `LayoutMural` e desenha o PNG.
+- O **renderer python-pptx** recebe o **mesmo** `LayoutMural` e gera o
+  `.pptx`. Como ambos partem das mesmas coordenadas, PNG e PPTX batem
+  visualmente.
+- Os "ajustes finos" do PPTX (paddings da caixa de texto) ficam isolados
+  no topo de `mural/render_pptx.py`, deixando claro que são calibragem.
 
-1. Atualiza a planilha `aniversariantes.xlsx` com os nomes do mês
-2. Muda no script:
+## Trocando para outro mês
+
+1. Atualize `assets/aniversariantes.xlsx`.
+2. Em `mural/config.py`, mude:
    ```python
    MES = "FEVEREIRO"
-   ARQUIVO_SAIDA = "mural_fevereiro_2026.png"
+   ARQUIVO_SAIDA_PNG  = PASTA_SAIDA / "mural_fevereiro_2026.png"
+   ARQUIVO_SAIDA_PPTX = PASTA_SAIDA / "mural_fevereiro_2026.pptx"
    ```
-3. Roda: `python gerar_mural.py`
-4. Pronto! O arquivo é gerado em segundos.
+3. Rode `python gerar_mural.py`.
 
-## 💡 Dicas
+## Problemas comuns
 
-- **Nome muito longo cortando**: diminui `MAX_COLUNAS`, aumenta `META_LINHAS_POR_COLUNA` (menos colunas = faixas mais largas), afina margens ou diminui o `TAMANHO_NOME`
-- **Texto fora do template**: provavelmente você exportou o template numa resolução diferente. Reajusta as posições proporcionalmente
-- **Quero usar outras fontes**: só trocar os caminhos `FONTE_*` para os arquivos `.ttf` ou `.otf` desejados
-- **Quero centralizar o nome**: posso te passar uma versão alternativa que centraliza, é só pedir
-
-## ❓ Problemas comuns
-
-**"Template não encontrado"** → confere se o arquivo `template.png` está
-na mesma pasta do script.
-
-**"Planilha precisa ter as colunas..."** → confere se sua planilha tem
-exatamente as colunas `dia`, `nome` e `cargo` (em minúsculas).
-
-**Fonte não carrega** → confere se o caminho do arquivo `.ttf`/`.otf`
-está correto e se o arquivo existe.
+- **"Template não encontrado"** → confira `assets/template.png`.
+- **"A planilha precisa ter as colunas..."** → as colunas devem ser
+  `dia`, `nome`, `cargo` (em minúsculas).
+- **Fonte não carrega** → verifique se o `.ttf/.otf` está em
+  `assets/fontes/` e se o nome em `mural/config.py` bate.
+- **No Canva a fonte saiu trocada** → o nome em `PPTX_NOME_FONTE_*`
+  precisa coincidir com a fonte instalada no Canva (ou enviada ao Brand
+  Kit). Se aparecer `Itoya Bold` na lista, ajuste para esse texto.
