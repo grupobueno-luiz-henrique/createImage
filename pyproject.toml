@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -10,14 +10,33 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "pillow>=10.0.0",
-    "pandas>=2.0.0",
+    "pandas>=2.2.0",
     "openpyxl>=3.1.0",
     "python-pptx>=1.0.0",
+    "requests>=2.32.0",
+    "SQLAlchemy>=2.0.30",
+    "psycopg2-binary>=2.9.9",
+    "python-dotenv>=1.0.1",
+    "xlrd>=2.0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.5.0",
 ]
 
 [project.scripts]
 gerar-mural = "gerar_mural:main"
 
+# ─── setuptools: módulo raiz + pacotes do projeto ───────────────────────────
 [tool.setuptools]
 py-modules = ["gerar_mural"]
-packages = ["mural"]
+packages = ["mural", "core", "config", "assets"]
+
+# Arquivos não-Python copiados para a wheel (ex.: planilhas em assets/regras/).
+# Template/fontes locais costumam ficar no .gitignore; quem estiver no repo
+# entra na distribuição.
+[tool.setuptools.package-data]
+assets = [
+    "regras/*",
+]
