@@ -57,9 +57,9 @@ Thumbs.db
 saida/*.png
 saida/*.pptx
 
-# Assets
-assets/ template.png
-assets/ aniversariantes.xlsx
+# Assets locais (template / planilha — não versionar)
+assets/template.png
+assets/aniversariantes.xlsx
 
 # Local env files (secrets)
 .env
