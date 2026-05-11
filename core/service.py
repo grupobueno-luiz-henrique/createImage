@@ -5,7 +5,7 @@ import pandas as pd
 from config import SCRIPT_DIR, MAPEAMENTO_PATH
 from core.database import DatabaseManager
 from core.mapeamento import aplicar_resultado, carregar_mapeamento
-from core.query import QUERY, QUERY_EMPLOYEES
+from core.query import QUERY_EMPLOYEES
 
 # Ordem e cabeçalhos no Excel (coluna no DataFrame, título na planilha).
 EXCEL_COLUMNS: list[tuple[str, str]] = [
@@ -106,7 +106,7 @@ class Service:
         out = _dataframe_para_excel(out)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        nome_arquivo = SCRIPT_DIR / f"aniversariantes.xlsx"
+        nome_arquivo = SCRIPT_DIR /"assets"/ f"aniversariantes.xlsx"
 
         if nome_arquivo.is_file():
             nome_arquivo.unlink()

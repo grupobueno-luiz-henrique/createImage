@@ -28,6 +28,9 @@ from mural.layout import calcular_layout, carregar_fontes_pillow
 from mural.planilha import carregar_aniversariantes
 from mural.render_pillow import renderizar_png
 from mural.render_pptx import exportar_pptx
+from core.service import Service
+
+service = Service()
 
 
 def _limpar_murais_antigos(pasta_saida: Path) -> None:
@@ -52,6 +55,10 @@ def _limpar_murais_antigos(pasta_saida: Path) -> None:
 
 def main() -> None:
     _limpar_murais_antigos(cfg.PASTA_SAIDA)
+    sucesso = service.run()
+    if not sucesso:
+        print("Erro ao executar o serviço")
+        return
 
     aniversariantes = carregar_aniversariantes(cfg.PLANILHA, cfg.PLANILHA_FALLBACK)
     print(f"📋 {len(aniversariantes)} aniversariantes encontrados")

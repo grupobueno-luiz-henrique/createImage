@@ -3,7 +3,6 @@ import os
 import pandas as pd
 import requests
 
-from core.query import QUERY
 from datetime import datetime
 from sqlalchemy import create_engine
 from config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS, SCRIPT_DIR
