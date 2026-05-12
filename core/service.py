@@ -9,6 +9,7 @@ from core.query import QUERY_EMPLOYEES
 
 # Ordem e cabeçalhos no Excel (coluna no DataFrame, título na planilha).
 EXCEL_COLUMNS: list[tuple[str, str]] = [
+    ("codigo", "Matrícula"),
     ("nome", "nome"),
     ("dia", "dia"),
     ("resultado", "cargo"),

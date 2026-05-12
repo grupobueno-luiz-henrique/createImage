@@ -147,4 +147,4 @@ MULT_ESPACO_ENTRE_LINHAS = 0.10
 
 EXPORTAR_PPTX = True
 PPTX_GRUPO_POR_COLUNA = True   # cada coluna vira um grupo arrastável no Canva
-MODO_DEBUG = True             # desenha guias verdes nas células do PNG
+MODO_DEBUG = False             # desenha guias verdes nas células do PNG

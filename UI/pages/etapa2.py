@@ -14,6 +14,7 @@ Fluxo da página (de cima para baixo):
 """
 
 from pathlib import Path
+import os
 
 import mural.config as cfg
 import pandas as pd
@@ -108,7 +109,6 @@ def _gerar_mural() -> tuple[bytes, bytes]:
 # =====================================================================
 # Configuração da página
 # =====================================================================
-st.set_page_config(page_title="Etapa 2 — PNG e PPTX", layout="wide")
 st.title("🖼️ Etapa 2 — Geração de PNG e PPTX")
 
 

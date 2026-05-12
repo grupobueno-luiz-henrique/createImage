@@ -59,10 +59,9 @@ def _salvar_xlsx(df: pd.DataFrame, destino: Path) -> None:
 
 
 # =====================================================================
-# Configuração da página + estado inicial
+# Estado inicial da página
 # =====================================================================
-st.set_page_config(page_title="Etapa 1 — Validação", layout="wide")
-st.title("📝 Etapa 1 — Geração e validação do XLSX")
+st.title("📝 Gerar planilha de aniversariantes")
 
 st.session_state.setdefault("df", None)
 st.session_state.setdefault("validado", False)
@@ -73,7 +72,7 @@ st.session_state.setdefault("validado", False)
 # ---------------------------------------------------------------------
 col_btn, _ = st.columns([1, 3])
 with col_btn:
-    if st.button("Gerar XLSX", type="primary"):
+    if st.button("Gerar planilha 🥳", type="primary"):
         with st.spinner("Consultando banco e gerando planilha..."):
             try:
                 st.session_state.df = _gerar_planilha_inicial()
@@ -84,7 +83,7 @@ with col_btn:
 
 
 if st.session_state.df is None:
-    st.info("Clique em **Gerar XLSX** para começar.")
+    st.info("Clique em **Gerar planilha 🥳** para começar.")
     st.stop()
 
 
@@ -106,7 +105,7 @@ st.divider()
 # ---------------------------------------------------------------------
 # Passos 3, 4 e 5 — salvar rascunho, marcar como validado e enviar.
 # ---------------------------------------------------------------------
-col_save, col_valid, col_send = st.columns(3)
+col_save, col_valid, col_send = st.columns(3, gap="xxlarge")
 
 with col_save:
     if st.button("💾 Salvar edições"):
