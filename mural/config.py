@@ -24,8 +24,11 @@ from .utilitarios import rgb
 
 # ───────────────────────────────────────────────────────────────────────────
 # 1) Mês de referência
-#    Detecta automaticamente o mês atual em português (sem depender de
-#    locale do sistema, que muitas vezes não tem pt_BR instalado).
+#    O mural é sempre do MÊS SEGUINTE ao atual, para casar com a query
+#    em ``core/query.py`` (EXTRACT(MONTH FROM CURRENT_DATE + INTERVAL '1 month')).
+#    Ou seja: se hoje é maio, o mural — e o nome do arquivo — sai como JUNHO.
+#    Detecta o mês em português sem depender de locale do sistema (que
+#    muitas vezes não tem pt_BR instalado).
 #    Para forçar um mês específico, troque MES por uma string, ex.:
 #        MES = "FEVEREIRO"
 # ───────────────────────────────────────────────────────────────────────────
@@ -36,8 +39,9 @@ _MESES_PT = (
 )
 
 _HOJE = datetime.now()
-MES = _MESES_PT[_HOJE.month - 1]
-ANO = _HOJE.year
+_MES_REFERENCIA = (_HOJE.month % 12) + 1            # mês seguinte (1..12)
+MES = _MESES_PT[_MES_REFERENCIA - 1]
+ANO = _HOJE.year + (1 if _HOJE.month == 12 else 0)  # vira o ano em dez → jan
 
 
 def _slug(texto: str) -> str:
@@ -62,6 +66,29 @@ PLANILHA_FALLBACK = PASTA_ASSETS / "aniversariantes_exemplo.xlsx"
 _NOME_BASE_SAIDA = f"mural_{_slug(MES)}_{ANO}"
 ARQUIVO_SAIDA_PNG = PASTA_SAIDA / f"{_NOME_BASE_SAIDA}.png"
 ARQUIVO_SAIDA_PPTX = PASTA_SAIDA / f"{_NOME_BASE_SAIDA}.pptx"
+
+
+def obter_referencia(
+    mes: int, ano: Optional[int] = None
+) -> tuple[str, int, Path, Path]:
+    """Devolve ``(mes_nome, ano, arquivo_png, arquivo_pptx)`` para o ``mes``.
+
+    Permite gerar um mural para qualquer mês escolhido na UI sem depender
+    das constantes ``MES``/``ANO`` deste módulo (que ficam fixadas no
+    momento do ``import``). Quando ``ano`` é ``None``, usa o ano atual.
+    """
+    if not 1 <= mes <= 12:
+        raise ValueError(f"mes deve estar entre 1 e 12 (recebido: {mes})")
+    if ano is None:
+        ano = datetime.now().year
+    mes_nome = _MESES_PT[mes - 1]
+    base = f"mural_{_slug(mes_nome)}_{ano}"
+    return (
+        mes_nome,
+        ano,
+        PASTA_SAIDA / f"{base}.png",
+        PASTA_SAIDA / f"{base}.pptx",
+    )
 
 
 # ───────────────────────────────────────────────────────────────────────────

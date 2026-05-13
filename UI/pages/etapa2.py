@@ -13,6 +13,8 @@ Fluxo da página (de cima para baixo):
     4. Pré-visualização     → mostra o PNG e oferece o download do PPTX.
 """
 
+import json
+from datetime import datetime
 from pathlib import Path
 import os
 
@@ -36,6 +38,7 @@ _ARQUIVOS = _UI_DIR / "arquivos"
 _PROJECT_ROOT = _UI_DIR.parent
 
 CAMINHO_VALIDADO = _ARQUIVOS / "dados_validado.xlsx"
+META_VALIDADO = _ARQUIVOS / "dados_validado.json"
 FLAG_VALIDADO = _ARQUIVOS / ".validado"
 
 
@@ -66,12 +69,42 @@ def _limpar_saidas_antigas(pasta: Path) -> None:
             arq.unlink()
 
 
-def _gerar_mural() -> tuple[bytes, bytes]:
-    """Executa a pipeline do pacote ``mural`` e devolve (png, pptx).
+def _carregar_meta() -> dict:
+    """Lê os metadados (mês/ano) gravados pela Etapa 1 no envio.
 
-    Levanta exceção se faltar template/fontes/planilha — a página
-    captura e exibe via st.error.
+    Faz fallback gracioso para o "mês seguinte / ano atual" se o JSON
+    não existir ou estiver corrompido — preserva o comportamento antigo
+    quando a Etapa 1 ainda não foi atualizada.
     """
+    if META_VALIDADO.exists():
+        try:
+            data = json.loads(META_VALIDADO.read_text(encoding="utf-8"))
+            return {
+                "mes": int(data.get("mes")),
+                "ano": int(data.get("ano", datetime.now().year)),
+            }
+        except Exception:
+            pass
+    return {
+        "mes": (datetime.now().month % 12) + 1,
+        "ano": datetime.now().year,
+    }
+
+
+def _gerar_mural(mes: int, ano: int) -> tuple[bytes, bytes]:
+    """Executa a pipeline do pacote ``mural`` para o ``mes``/``ano`` informado.
+
+    Sobrescreve ``cfg.MES``/``cfg.ANO`` em tempo de execução para que o
+    título desenhado pelo ``mural.layout`` reflita o mês escolhido na UI,
+    e usa caminhos de saída calculados via ``cfg.obter_referencia``.
+    """
+    mes_nome, ano_ref, arquivo_png_rel, arquivo_pptx_rel = cfg.obter_referencia(
+        mes, ano
+    )
+
+    cfg.MES = mes_nome
+    cfg.ANO = ano_ref
+
     template = _resolve_projeto(cfg.TEMPLATE)
     if not template.exists():
         raise FileNotFoundError(f"Template não encontrado: {template}")
@@ -85,8 +118,8 @@ def _gerar_mural() -> tuple[bytes, bytes]:
     _limpar_saidas_antigas(pasta_saida)
     pasta_saida.mkdir(parents=True, exist_ok=True)
 
-    arquivo_png = _resolve_projeto(cfg.ARQUIVO_SAIDA_PNG)
-    arquivo_pptx = _resolve_projeto(cfg.ARQUIVO_SAIDA_PPTX)
+    arquivo_png = _resolve_projeto(arquivo_png_rel)
+    arquivo_pptx = _resolve_projeto(arquivo_pptx_rel)
 
     with Image.open(template) as img:
         tamanho_imagem = img.size
@@ -107,64 +140,100 @@ def _gerar_mural() -> tuple[bytes, bytes]:
 
 
 # =====================================================================
-# Configuração da página
+# Cabeçalho — contexto do papel (equipe Marketing).
 # =====================================================================
-st.title("🖼️ Etapa 2 — Geração de PNG e PPTX")
+st.title("Etapa 2 — Geração da arte (Equipe Marketing)")
+st.caption(
+    "Receba a lista validada pelo GG, confira e gere o mural em PNG e PPTX."
+)
+st.divider()
 
 
 # ---------------------------------------------------------------------
 # Guarda — precisa existir o XLSX validado E a flag .validado.
 # ---------------------------------------------------------------------
 if not FLAG_VALIDADO.exists() or not CAMINHO_VALIDADO.exists():
-    st.warning(
-        "⏳ Nenhuma planilha validada disponível ainda. "
-        "Aguarde a equipe da Etapa 1 finalizar a validação."
-    )
-    if st.button("🔄 Verificar novamente"):
-        st.rerun()
+    with st.container(border=True):
+        st.markdown("#### Aguardando o GG")
+        st.caption(
+            "Nenhuma lista validada disponível ainda. "
+            "Quando o GG liberar, ela aparece aqui automaticamente."
+        )
+        if st.button("Verificar novamente"):
+            st.rerun()
     st.stop()
 
 
 # ---------------------------------------------------------------------
-# Preview da planilha validada (somente leitura).
+# Metadados gravados pela Etapa 1: mês/ano escolhidos no envio.
+# Tudo nesta página passa a usar esses valores em vez de cfg.MES (que
+# é congelado no import time).
+# ---------------------------------------------------------------------
+meta = _carregar_meta()
+mes_ref = int(meta["mes"])
+ano_ref = int(meta["ano"])
+mes_nome_ref, _, _, arquivo_pptx_ref = cfg.obter_referencia(mes_ref, ano_ref)
+
+
+# ---------------------------------------------------------------------
+# Painel "Recebido do GG" — KPIs + preview da planilha validada.
 # ---------------------------------------------------------------------
 df = _carregar_preview(CAMINHO_VALIDADO, CAMINHO_VALIDADO.stat().st_mtime)
+recebido_em = datetime.fromtimestamp(CAMINHO_VALIDADO.stat().st_mtime)
 
-st.success("✅ Planilha validada recebida da Etapa 1.")
-with st.expander("Ver dados validados"):
-    st.dataframe(df, use_container_width=True)
+with st.container(border=True):
+    st.subheader("1. Planilha Revisada")
+    k1, k2, k3 = st.columns(3)
+    k1.metric("Mês do mural", mes_nome_ref.title())
+    k2.metric("Aniversariantes", len(df))
+    k3.metric("Recebido em", recebido_em.strftime("%d/%m as %H:%M"))
 
-st.divider()
-
-
-# ---------------------------------------------------------------------
-# Geração do PNG e PPTX.
-# ---------------------------------------------------------------------
-if st.button("🎨 Gerar PNG e PPTX", type="primary"):
-    with st.spinner("Renderizando mural..."):
-        try:
-            png_bytes, pptx_bytes = _gerar_mural()
-            st.session_state.png_bytes = png_bytes
-            st.session_state.pptx_bytes = pptx_bytes
-        except Exception as e:
-            st.error(f"Erro ao gerar mural: {e}")
+    with st.expander("Ver dados validados"):
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
 
 # ---------------------------------------------------------------------
-# Pré-visualização + download (só aparece após a geração).
+# Geração do PNG e PPTX (com feedback via st.status).
+# ---------------------------------------------------------------------
+with st.container(border=True):
+    st.subheader("2. Gerar a arte")
+    if st.button("Gerar PNG e PPTX", type="primary"):
+        with st.status("Renderizando mural...", expanded=True) as status:
+            try:
+                st.write("Calculando layout...")
+                png_bytes, pptx_bytes = _gerar_mural(mes_ref, ano_ref)
+                st.session_state.png_bytes = png_bytes
+                st.session_state.pptx_bytes = pptx_bytes
+                status.update(
+                    label="Mural pronto.", state="complete", expanded=False
+                )
+                st.balloons()
+            except Exception as e:
+                status.update(label="Falhou.", state="error")
+                st.error(f"Erro ao gerar mural: {e}")
+
+
+# ---------------------------------------------------------------------
+# Resultado: download do PPTX + pré-visualização.
 # ---------------------------------------------------------------------
 png_bytes = st.session_state.get("png_bytes")
 pptx_bytes = st.session_state.get("pptx_bytes")
 
 if png_bytes:
-    st.subheader("Pré-visualização (PNG)")
-    st.image(png_bytes, use_container_width=True)
+    with st.container(border=True):
+        st.subheader("3. Resultado")
 
-    if pptx_bytes:
-        st.download_button(
-            "⬇️ Baixar PPTX",
-            data=pptx_bytes,
-            file_name=Path(cfg.ARQUIVO_SAIDA_PPTX).name,
-            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            type="primary",
-        )
+        if pptx_bytes:
+            st.download_button(
+                "Baixar PPTX",
+                data=pptx_bytes,
+                file_name=Path(arquivo_pptx_ref).name,
+                mime=(
+                    "application/vnd.openxmlformats-officedocument"
+                    ".presentationml.presentation"
+                ),
+                type="primary",
+                use_container_width=True,
+            )
+
+    st.image(png_bytes, use_container_width=True, caption="Pré-visualização")

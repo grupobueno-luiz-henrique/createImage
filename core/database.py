@@ -48,13 +48,17 @@ class DatabaseManager:
             print(f"ERRO ao conectar no banco: {e}")
             sys.exit(1)
 
-    def consultar_funcionarios(self, QUERY):
-        """Executa a query e retorna um DataFrame."""
+    def consultar_funcionarios(self, QUERY, params=None):
+        """Executa a query e retorna um DataFrame.
+
+        ``params`` é repassado para o SQLAlchemy (ex.: ``{"mes": 6}``),
+        permitindo queries parametrizadas como ``WHERE ... = :mes``.
+        """
         if self.engine is None:
             self.connect()
 
         print("Executando consulta...")
-        df = pd.read_sql_query(QUERY, self.engine)
+        df = pd.read_sql_query(QUERY, self.engine, params=params)
         print(f"Total de funcionarios encontrados: {len(df)}")
         return df
 

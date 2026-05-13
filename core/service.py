@@ -126,11 +126,24 @@ class Service:
         print(f"\nArquivo Excel gerado: {nome_arquivo}")
         return str(nome_arquivo)
 
-    def run(self) -> bool:
-        """Executa o programa principal."""
+    def run(self, mes: int | None = None) -> bool:
+        """Executa o programa principal.
+
+        ``mes`` é o mês (1..12) usado pelo filtro
+        ``EXTRACT(MONTH FROM data_nascimento) = :mes`` na query.
+        Se não for passado, usa o mês seguinte ao atual — preservando o
+        comportamento histórico da CLI (``gerar_mural.py``).
+        """
+        if mes is None:
+            mes = (datetime.now().month % 12) + 1  # mês seguinte
+        if not 1 <= mes <= 12:
+            raise ValueError(f"mes deve estar entre 1 e 12 (recebido: {mes})")
+
         try:
             self.database.connect()
-            df = self.database.consultar_funcionarios(QUERY_EMPLOYEES)
+            df = self.database.consultar_funcionarios(
+                QUERY_EMPLOYEES, params={"mes": mes}
+            )
 
             if df.empty:
                 print("Nenhum aniversariante encontrado")
